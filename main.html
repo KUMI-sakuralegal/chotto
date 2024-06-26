@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Transaction Prices</title>
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 200px;
+            height: auto;
+            padding: 10px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .circle-label {
+            font: 12px sans-serif;
+            text-anchor: middle;
+            alignment-baseline: middle;
+            fill: red;
+        }
+        .axis-label {
+            font: 14px sans-serif;
+            font-weight: bold;
+        }
+        .marker-label {
+            font: 14px sans-serif;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script>
+        const data = [
+            { no: 1, price: 400000, area: '北町', distance: 5, tsubo: 1300000, size: '2,000㎡以上', shape: 'ほぼ台形', width: 33, direction: '東', roadType: '都道', roadWidth: 5, urbanPlanning: '１中住専', buildingCoverage: 60, floorAreaRatio: 150, period: '2023年第1四半期' },
+            { no: 2, price: 490000, area: '北町', distance: 8, tsubo: 1600000, size: 110, shape: 'ほぼ長方形', width: 9.9, direction: '北', roadType: '私道', roadWidth: 5, urbanPlanning: '１低住専', buildingCoverage: 50, floorAreaRatio: 100, period: '2023年第1四半期' },
+            { no: 3, price: 410000, area: '北町', distance: 9, tsubo: 1300000, size: 55, shape: '長方形', width: '', direction: '北', roadType: '私道', roadWidth: 4, urbanPlanning: '１低住専', buildingCoverage: 50, floorAreaRatio: 100, period: '2022年第1四半期' },
+            { no: 4, price: 630000, area: '北町', distance: 10, tsubo: 2100000, size: 250, shape: '不整形', width: 40, direction: '東', roadType: '都道', roadWidth: 44, urbanPlanning: '１種住居', buildingCoverage: 60, floorAreaRatio: 300, period: '2022年第1四半期' },
+            { no: 5, price: 510000, area: '田柄', distance: 6, tsubo: 1700000, size: '2,000㎡以上', shape: 'ほぼ整形', width: 31.3, direction: '南', roadType: '区道', roadWidth: 12, urbanPlanning: '１種住居', buildingCoverage: 60, floorAreaRatio: 200, period: '2023年第2四半期' },
+            { no: 6, price: 410000, area: '田柄', distance: 16, tsubo: 1300000, size: '2,000㎡以上', shape: 'ほぼ長方形', width: '50.0m以上', direction: '北', roadType: '区道', roadWidth: 5, urbanPlanning: '１低住専', buildingCoverage: 50, floorAreaRatio: 100, period: '2022年第2四半期' },
+            { no: 7, price: 750000, area: '田柄', distance: 9, tsubo: 2500000, size: 70, shape: '長方形', width: 6.8, direction: '南', roadType: '私道', roadWidth: 4.5, urbanPlanning: '１低住専', buildingCoverage: 50, floorAreaRatio: 100, period: '2022年第2四半期' },
+            { no: 8, price: 580000, area: '早宮', distance: 9, tsubo: 1900000, size: 75, shape: 'ほぼ長方形', width: 4.7, direction: '西', roadType: '区道', roadWidth: 4, urbanPlanning: '１中住専', buildingCoverage: 60, floorAreaRatio: 200, period: '2023年第3四半期' },
+            { no: 9, price: 540000, area: '早宮', distance: 8, tsubo: 1800000, size: 120, shape: 'ほぼ長方形', width: 8.5, direction: '東', roadType: '区道', roadWidth: 4.5, urbanPlanning: '１低住専', buildingCoverage: 50, floorAreaRatio: 100, period: '2022年第3四半期' },
+            { no: 10, price: 520000, area: '平和台', distance: 11, tsubo: 1700000, size: 100, shape: 'ほぼ長方形', width: 8.1, direction: '東', roadType: '私道', roadWidth: 4, urbanPlanning: '１低住専', buildingCoverage: 60, floorAreaRatio: 200, period: '2023年第3四半期' },
+            { no: 11, price: 570000, area: '平和台', distance: 12, tsubo: 1900000, size: 60, shape: 'ほぼ正方形', width: 8, direction: '北西', roadType: '都道', roadWidth: 25, urbanPlanning: '１種住居', buildingCoverage: 60, floorAreaRatio: 300, period: '2023年第2四半期' },
+            { no: 12, price: 530000, area: '平和台', distance: 13, tsubo: 1800000, size: 145, shape: 'ほぼ長方形', width: 14.5, direction: '東', roadType: '区道', roadWidth: 9.6, urbanPlanning: '１低住専', buildingCoverage: 60, floorAreaRatio: 200, period: '2022年第2四半期' },
+            { no: 13, price: 430000, area: '平和台', distance: 10, tsubo: 1400000, size: 270, shape: '袋地等', width: '', direction: '南', roadType: '区道', roadWidth: 6, urbanPlanning: '１低住専', buildingCoverage: 60, floorAreaRatio: 200, period: '2022年第1四半期' },
+        ];
+
+        const mean = 520769;
+        const stdDev = 95793;
+
+        const margin = { top: 60, right: 60, bottom: 60, left: 80 };
+        const width = 800 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleLinear()
+            .domain([d3.min(data, d => d.price) * 0.9, d3.max(data, d => d.price) * 1.1])
+            .range([0, width]);
+
+        const yLeft = d3.scaleLinear()
+            .domain([0, 0.4])
+            .range([height, 0]);
+
+        const yRight = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.floorAreaRatio) * 1.1])
+            .range([height, 0]);
+
+        const histogram = d3.histogram()
+            .value(d => d.price)
+            .domain(x.domain())
+            .thresholds(x.ticks(40));
+
+        const bins = histogram(data);
+
+        const yHist = d3.scaleLinear()
+            .domain([0, d3.max(bins, d => d.length)])
+            .range([height, 0]);
+
+        svg.append("g")
+            .call(d3.axisLeft(yLeft));
+
+        svg.append("g")
+            .attr("transform", `translate(${width},0)`)
+            .call(d3.axisRight(yRight).tickFormat(d => d + '%'));
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        svg.selectAll("rect")
+            .data(bins)
+            .enter()
+            .append("rect")
+            .attr("x", 1)
+            .attr("transform", d => `translate(${x(d.x0)},${yHist(d.length)})`)
+            .attr("width", d => x(d.x1) - x(d.x0) - 1)
+            .attr("height", d => height - yHist(d.length))
+            .style("fill", "#69b3a2");
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        svg.selectAll("text.circle-label")
+            .data(data)
+            .enter()
+            .append("text")
+            .attr("class", "circle-label")
+            .attr("x", d => x(d.price))
+            .attr("y", d => yRight(d.floorAreaRatio))
+            .attr("dy", ".35em")
+            .attr("text-anchor", "middle")
+            .text(d => `⬤ ${d.no}`)
+            .on("mouseover", (event, d) => {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`No: ${d.no}<br>価格（㎡単価）: ${d.price}<br>地区名: ${d.area}<br>最寄駅: ${d.distance}分<br>坪単価: ${d.tsubo}<br>面積: ${d.size}<br>土地の形状: ${d.shape}<br>間口: ${d.width}<br>前面道路: ${d.direction}<br>道路種類: ${d.roadType}<br>道路幅員: ${d.roadWidth}m<br>都市計画: ${d.urbanPlanning}<br>建ぺい率: ${d.buildingCoverage}%<br>容積率: ${d.floorAreaRatio}%<br>取引時期: ${d.period}`)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", (d) => {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+        function normalDistribution(x, mean, stdDev) {
+            return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+        }
+
+        const normalData = x.ticks(100).map(d => {
+            return {
+                x: d,
+                y: normalDistribution(d, mean, stdDev)
+            };
+        });
+
+        const yMaxNormal = d3.max(normalData, d => d.y);
+
+        const yScaleNormal = d3.scaleLinear()
+            .domain([0, yMaxNormal])
+            .range([height, 0]);
+
+        const line = d3.line()
+            .x(d => x(d.x))
+            .y(d => yScaleNormal(d.y));
+
+        svg.append("path")
+            .datum(normalData)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 1.5)
+            .attr("d", line);
+
+        const markers = [
+            { value: mean, label: "Mean" },
+            { value: mean - stdDev, label: "-1σ" },
+            { value: mean + stdDev, label: "+1σ" },
+            { value: mean + 2 * stdDev, label: "+2σ" },
+            { value: mean + 3 * stdDev, label: "+3σ" },
+        ];
+
+        svg.selectAll("line.marker")
+            .data(markers)
+            .enter()
+            .append("line")
+            .attr("class", "marker")
+            .attr("x1", d => x(d.value))
+            .attr("x2", d => x(d.value))
+            .attr("y1", 0)
+            .attr("y2", height)
+            .attr("stroke", "black")
+            .attr("stroke-dasharray", "4");
+
+        svg.selectAll("text.marker-label")
+            .data(markers)
+            .enter()
+            .append("text")
+            .attr("class", "marker-label")
+            .attr("x", d => x(d.value))
+            .attr("y", -20)
+            .attr("text-anchor", "middle")
+            .text(d => d.label);
+
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .text("価格[円/㎡]");
+
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 20)
+            .text("確率密度");
+
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", width + margin.right - 10)
+            .text("容積率[%]");
+
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", width / 2)
+            .attr("y", -margin.top + 20)
+            .text("標準偏差[σ]");
+    </script>
+</body>
+</html>
